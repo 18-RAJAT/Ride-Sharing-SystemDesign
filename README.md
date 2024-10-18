@@ -1,8 +1,8 @@
-# Ride-Sharing Architecture Overview
+# Ride-Sharing System
 
-This document provides an overview of the architecture for a ride-sharing application, detailing the client-side applications, backend services, data storage, and service connections.
+This document provides an overview of the ride-sharing system's architecture and functionality, covering client-side applications, backend services, data storage, and potential future enhancements.
 
-![Architecture Diagram](image/ride-sharing-system.png)
+---
 
 ## Table of Contents
 1. [Client-Side Applications](#client-side-applications)
@@ -11,141 +11,130 @@ This document provides an overview of the architecture for a ride-sharing applic
 4. [Service Connections](#service-connections)
 5. [Kafka Service](#kafka-service)
 6. [Key Use Cases](#key-use-cases)
+7. [Ride-Matching Logic](#ride-matching-logic)
+8. [Future Enhancements](#future-enhancements)
+
+---
 
 ## Client-Side Applications
 
-- **Rider App**
-  - **Functionality**: Allows users to request rides, view drivers, track ride status, make payments, and rate drivers.
+- **Rider App**: Users request rides, view drivers, track rides, make payments, and rate drivers.  
+- **Driver App**: Drivers receive ride requests, manage trip status, and accept payments.
 
-- **Driver App**
-  - **Functionality**: Allows drivers to receive ride requests, navigate to the rider's location, manage ride status, and receive payments.
+---
 
 ## Backend Services
 
-- **API Gateway**
-  - **Functionality**: Manages and routes requests from client-side applications to the appropriate backend services.
+- **API Gateway**: Routes client requests to backend services.
 
-### Services
-- **Ride Matching Service** (AWS EC2)
-  - Matches riders with nearby drivers based on real-time location and availability.
+### Core Services:
+- **Ride Matching Service**: Matches riders with nearby drivers based on availability.  
+- **Location Tracking Service**: Tracks real-time rider and driver locations.  
+- **Pricing and ETA Service**: Calculates fares and estimated arrival times.  
+- **Notification Service**: Sends notifications for trip status changes.  
+- **Payment Service**: Manages transactions and driver payouts.  
+- **Trip Management Service**: Handles the trip lifecycle.  
+- **User Management Service**: Authenticates users and manages profiles.  
+- **Surge Pricing & Demand Prediction**: Adjusts fares based on demand analytics.
 
-- **Real-Time Location Tracking Service** (AWS EC2)
-  - Tracks the real-time location of both riders and drivers during active rides and updates the system.
-
-- **Pricing and ETA Service** (AWS EC2)
-  - Calculates trip fare based on distance, time, traffic conditions, and surge pricing. Provides estimated time of arrival (ETA).
-
-- **Notification Service** (AWS SNS)
-  - Sends push notifications to both riders and drivers about ride requests, cancellations, trip start/end, etc.
-
-- **Payment Service** (AWS EC2)
-  - Handles payment transactions, including fare calculation, user billing, driver payout, and storing payment details.
-
-- **Rating & Review Service** (AWS EC2)
-  - Allows riders and drivers to leave ratings and reviews after the completion of a trip.
-
-- **Trip Management Service** (AWS EC2)
-  - Manages trip lifecycle, including ride request, acceptance, in-progress tracking, and completion.
-
-- **User Management Service** (AWS Cognito)
-  - Handles user authentication and authorization, including managing rider and driver profiles.
-
-- **Surge Pricing & Demand Prediction** (AWS EC2)
-  - Analyzes demand patterns in different areas to adjust prices during high-demand periods (surge pricing).
-
-- **Kafka Service**
-  - Manages real-time event streams for efficient message exchange between services.
+---
 
 ## Data Storage and Databases
 
-- **User Database** (PostgreSQL)
-  - Stores user data such as profiles, authentication information, and payment details.
+- **User Database**: Stores user profiles and payment data.  
+- **Ride Database**: Stores trip history and details.  
+- **Cache (Redis)**: Caches frequently accessed data.  
+- **Data Warehouse**: Stores historical data for analytics.  
+- **Blob Storage**: Stores receipts and documents.
 
-- **Ride Database** (MongoDB)
-  - Stores ride-related data, including trip history, driver/rider interactions, and location data.
-
-- **Cache** (Redis)
-  - Caches frequently accessed data (such as driver locations and pricing details) to reduce latency and improve system performance.
-
-- **Data Warehouse** (AWS Redshift)
-  - Stores and processes large amounts of historical data for analytics, demand prediction, and reporting.
-
-- **Blob Storage** (AWS S3)
-  - Stores large unstructured data like trip receipts, driver/rider images, and documents.
+---
 
 ## Service Connections
 
-- Rider App → API Gateway
-- Driver App → API Gateway
+- Rider App → API Gateway → Ride Matching Service  
+- Driver App → API Gateway → Trip Management Service  
+- Notification Service ↔ Rider & Driver Apps  
+- Payment Service ↔ User Database  
 
-- API Gateway → Ride Matching Service
-- API Gateway → Real-Time Location Tracking Service
-- API Gateway → Pricing and ETA Service
-- API Gateway → Notification Service
-- API Gateway → Payment Service
-- API Gateway → Rating & Review Service
-- API Gateway → Trip Management Service
-- API Gateway → User Management Service
-- API Gateway → Surge Pricing & Demand Prediction
-
-- Ride Matching Service ↔ Ride Database
-- Real-Time Location Tracking Service ↔ Ride Database
-- Pricing and ETA Service ↔ Cache
-- Payment Service ↔ User Database
-- Rating & Review Service ↔ User Database
-- Trip Management Service ↔ User Database
-- User Management Service ↔ User Database
-- Surge Pricing & Demand Prediction ↔ Data Warehouse
-- Blob Storage → User Database: Store receipts
+---
 
 ## Kafka Service
 
-The Kafka Service is responsible for:
+- **Event Streaming**: Streams real-time events between services.  
+- **Decoupling**: Enables asynchronous service communication.  
+- **Event Persistence**: Stores events for recovery and analytics.
 
-- **Real-Time Event Streaming**: Facilitates communication between microservices by streaming events in real-time.
-- **Decoupling Services**: Enables asynchronous communication, allowing services to function independently.
-- **Handling Event-Driven Workflows**: Captures events like ride requests, trip updates, and notifications for processing by different services.
-- **Event Persistence and Replay**: Retains event logs for a configurable period, allowing services to recover missed events.
+---
 
 ## Key Use Cases
 
-- **Ride Request Processing**
-  - Event: "ride_request"
-  - Publisher: Rider App
-  - Consumer: Ride Matching Service
-  - Matches riders with drivers based on incoming ride requests.
+- **Ride Request Processing**: Rider app sends ride requests to the backend.  
+- **Location Updates**: Location data is streamed to track trips.  
+- **Trip Status Notifications**: Notification service updates users on ride status.  
 
-- **Real-Time Location Updates**
-  - Event: "location_update"
-  - Publisher: Real-Time Location Tracking Service
-  - Consumers: Trip Management Service, Rider App, Driver App
-  - Provides real-time updates on rider and driver locations.
+---
 
-- **Notification Handling**
-  - Event: "trip_status_change"
-  - Publisher: Trip Management Service
-  - Consumer: Notification Service
-  - Sends notifications to users about trip status changes.
+## Ride-Matching Logic
 
-- **Trip Lifecycle Management**
-  - Events: "ride_accepted", "trip_started", "trip_completed"
-  - Publisher: Ride Matching Service, Trip Management Service
-  - Consumer: Payment Service
-  - Handles trip lifecycle and billing based on completed trips.
+This program matches a rider with the nearest available driver and calculates the fare.
 
-## Service-to-Kafka Connections
+### Matching Process:
 
-- Ride Matching Service ↔ Kafka
-  - Publishes and subscribes to ride-related events (e.g., ride requests, cancellations).
+1. **Driver Input**: Collects multiple driver names and locations.  
+2. **Rider Input**: Collects rider name and location.  
+3. **Matching Logic**: Identifies the closest driver using Cartesian distance.  
+4. **Fare Calculation**: Uses the formula `Fare = $5 × Distance`.
 
-- Real-Time Location Tracking Service ↔ Kafka
-  - Publishes location updates for riders and drivers.
 
-- Notification Service ↔ Kafka
-  - Listens for events to send real-time notifications.
+## Distance Calculation
 
-- Trip Management Service ↔ Kafka
-  - Manages trip lifecycle based on ride-related events.
+The system calculates the distance between two geographical points using the following formula:
 
-- Payment Service ↔ Kafka
-  - Subscribes to trip completion events for fare calculation and driver payout.
+The system calculates the distance between two points using:  
+
+```
+Distance = sqrt((latitude difference)^2 + (longitude difference)^2)
+
+```
+
+This formula is a simplified version of the Haversine formula, used here for demonstration purposes to calculate the straight-line distance between two points on a plane.
+
+
+### Example Input:
+
+```text
+
+INPUT::
+Enter the number of drivers: 2
+Enter name for Driver 1: John
+Enter latitude for Driver 1: 10.0
+Enter longitude for Driver 1: 10.0
+Enter name for Driver 2: Alice
+Enter latitude for Driver 2: 20.0
+Enter longitude for Driver 2: 20.0
+
+Enter rider's name: Bob
+Enter rider's latitude: 10.5
+Enter rider's longitude: 10.5
+
+OUTPUT::
+Matched Bob with John
+Fare: $3.53553
+
+```
+
+---
+
+## Future Enhancements
+
+1. **Haversine Formula**: 
+   - Implement the Haversine formula to calculate real-world distances on a sphere, providing more accurate distance measurements.
+
+2. **Multiple Riders**:
+   - Extend the service to handle multiple riders concurrently, allowing for batch processing of ride requests.
+
+3. **Driver Reassignment**:
+   - Allow drivers to rejoin the pool of available drivers after completing a trip, enabling continuous ride matching.
+
+4. **Surge Pricing**:
+   - Implement dynamic pricing based on demand, adjusting fares during peak times to balance supply and demand.
