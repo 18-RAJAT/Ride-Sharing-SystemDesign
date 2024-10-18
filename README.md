@@ -4,6 +4,10 @@ This document provides an overview of the ride-sharing system's architecture and
 
 ---
 
+![Architecture Diagram](image/ride-sharing-system.png)
+
+---
+
 ## Table of Contents
 1. [Client-Side Applications](#client-side-applications)
 2. [Backend Services](#backend-services)
